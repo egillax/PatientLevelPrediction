@@ -75,7 +75,10 @@ preprocessData <- function (covariateData,
   ParallelLogger::logDebug(paste0('removeRedundancy: ', preprocessSettings$removeRedundancy))
   
   preprocessSettings$covariateData <- covariateData
+  startTime <- Sys.time()
   covariateData <- do.call(FeatureExtraction::tidyCovariateData, preprocessSettings)
+  delta <- Sys.time() - startTime
+  ParallelLogger::logInfo("Tidying covariates took ", signif(delta, 3), " ", attr(delta, "units"))
   
   #update covariateRed
   removed <- unique(

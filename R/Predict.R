@@ -34,7 +34,7 @@
 # parent predict that calls the others
 #' @export
 predictPlp <- function(plpModel, plpData, population, timepoint){
-  
+  startTime <- Sys.time()
   if(is.null(plpModel))
     stop('No model input')
   if(is.null(population))
@@ -95,6 +95,8 @@ predictPlp <- function(plpModel, plpData, population, timepoint){
   metaData$timepoint <- timepoint
   
   attr(prediction, "metaData") <- metaData
+  delta <- Sys.time() - startTime
+  ParallelLogger::logInfo("predictPlp took ", signif(delta, 3), " ", attr(delta, "units"))
   return(prediction)
 }
 

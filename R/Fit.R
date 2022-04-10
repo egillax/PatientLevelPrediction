@@ -57,7 +57,7 @@ fitPlp <- function(
   analysisId
   )
   {
-  
+  startTime <- Sys.time()
   if(is.null(trainData))
     stop('trainData is NULL')
   if(is.null(trainData$covariateData))
@@ -83,7 +83,8 @@ fitPlp <- function(
   ParallelLogger::logTrace('Returned from classifier function')
   
   class(plpModel) <- 'plpModel'
-  
+  delta <- Sys.time() - startTime
+  ParallelLogger::logInfo("fitPlp took ", signif(delta, 3), " ", attr(delta, "units"))
   return(plpModel)
   
 }
