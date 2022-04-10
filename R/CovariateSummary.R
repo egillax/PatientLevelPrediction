@@ -98,7 +98,7 @@ covariateSummary <- function(
   
   ParallelLogger::logInfo(paste0('Finished covariate summary @ ', Sys.time()))
   delta <- Sys.time() - startTime
-  ParallelLogger::logInfo("covariateSummary took ", signif(delta, 3), " ", attr(delta, "units"))
+  ParallelLogger::logInfo("CovariateSummary took ", signif(delta, 3), " ", attr(delta, "units"))
   return(covariateSummary)
 }
 
@@ -206,28 +206,18 @@ aggregateCovariateSummaries <- function(
     #resultLabelStratas <- reshape2::dcast(resultLabelStratas, covariateId~group+variable, fill = 0)
     
     # labels only
-    resultLabels <- covariateSummariesPerStrata %>% 
-      dplyr::mutate(
-        groupLabel = sapply(.data$group, function(x){ ifelse(
-          length( grep('WithNoOutcome', x))>0, 
-          'WithNoOutcome',
-          'WithOutcome' 
-          )})
-      ) %>%
-      dplyr::group_by(.data$covariateId, .data$groupLabel) %>%
-    dplyr::summarise(
-      CovariateCount = sum(.data$CovariateCount), 
-      CovariateMean = sum(.data$sumVal)/sum(.data$N),
-      CovariateStDev = sqrt(sum(.data$sumSquares)/sum(.data$N) - (sum(.data$sumVal)/sum(.data$N))^2 )
-    ) %>% 
-      dplyr::select(
-        .data$groupLabel,
-        .data$covariateId, 
-        .data$CovariateCount, 
-        .data$CovariateMean, 
-        .data$CovariateStDev
-      )
-    
+    # speed this up using data table
+    data.table::setDT(covariateSummariesPerStrata)
+    resultLabels <- covariateSummariesPerStrata[, groupLabel := ifelse(grepl('WithNoOutcome', as.matrix(group)),
+                                                       'WithNoOutcome', 'WithOutcome')
+                                ][, keyby=.(covariateId, groupLabel),
+                                  .(CovariateCount = sum(CovariateCount),
+                                    CovariateMean = sum(sumVal)/sum(.N),
+                                    CovariateStDev = sqrt(sum(sumSquares)/sum(.N) - 
+                                                            (sum(sumVal)/sum(N))^2))
+                                ][, .(groupLabel, covariateId, CovariateCount,
+                                      CovariateMean, CovariateStDev)]
+      
     resultLabels <- tidyr::pivot_longer(
       data = resultLabels, 
       cols = colnames(resultLabels)[!colnames(resultLabels) %in% c('covariateId','groupLabel')],
@@ -254,20 +244,19 @@ aggregateCovariateSummaries <- function(
     
  
     # all results
-    resultAll <- covariateSummariesPerStrata %>% 
-      dplyr::group_by(.data$covariateId) %>% 
-    dplyr::summarise(
-      CovariateCount = sum(.data$CovariateCount), 
-      CovariateMean = sum(.data$sumVal)/sum(.data$N),
-      CovariateStDev = sqrt(sum(.data$sumSquares)/sum(.data$N) - (sum(.data$sumVal)/sum(.data$N))^2 )
-    )
+    # speed up here with data.table
+    resultAll <- covariateSummariesPerStrata[, by=covariateId, 
+                                .(CovariateCount = sum(CovariateCount),
+                                  CovariateMean = sum(sumVal)/sum(.N),
+                                  CovariateStDev = sqrt(sum(sumSquares)/sum(.N) - 
+                                                          (sum(sumVal)/sum(N))^2))]
     
     result <-  resultAll %>% 
       dplyr::left_join(resultLabels, by = 'covariateId')  %>% 
       dplyr::left_join(resultLabelStratas, by = 'covariateId')
     
   }
-
+  data.table::setDF(result) # convert in-place back to data-frame
   return(result)  
 }
 
@@ -336,24 +325,22 @@ covariateSummarySubset <- function(
   } else{
     covariates <- covariateData$covariates
   }
-  
   ParallelLogger::logInfo(paste0('Calculating summary for subgroup ', subsetName))
   
   result <- covariates %>%
     dplyr::group_by(.data$covariateId) %>%
     dplyr::summarise(
-      CovariateCount = dplyr::n(),
+      CovariateCount = n(),
       sumVal = sum(.data$covariateValue,na.rm = TRUE),
       sumSquares = sum(.data$covariateValue^2,na.rm = TRUE)
-    ) %>%
+    ) %>% collect() %>% 
     dplyr::mutate(
       CovariateMean = 1.0*.data$sumVal/N,
       CovariateStDev = sqrt(.data$sumSquares/N - (.data$sumVal/N)^2 ),
       N = N,
       group = subsetName
-      ) %>% 
-    dplyr::collect()
-  
+      )
+
   return(result)
 }
 

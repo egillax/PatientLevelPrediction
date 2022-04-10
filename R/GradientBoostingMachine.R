@@ -35,9 +35,9 @@
 #'
 #' @export
 setGradientBoostingMachine <- function(ntrees=c(100, 300), nthread=20, earlyStopRound = 25,
-                                  maxDepth=c(4,6,8), minChildWeight=1, learnRate=c(0.05, 0.1,0.3),
-                                  scalePosWeight=1, lambda=1, alpha=0,
-                                  seed= sample(10000000,1)){
+                                       maxDepth=c(4,6,8), minChildWeight=1, learnRate=c(0.05, 0.1,0.3),
+                                       scalePosWeight=1, lambda=1, alpha=0,
+                                       seed= sample(10000000,1)){
   
   ensure_installed("xgboost")
   
@@ -91,7 +91,7 @@ setGradientBoostingMachine <- function(ntrees=c(100, 300), nthread=20, earlyStop
       lambda=lambda,
       alpha=alpha,
       scalePosWeight=scalePosWeight
-      ),
+    ),
     1:(length(ntrees)*length(maxDepth)*length(minChildWeight)*length(learnRate)*
          length(earlyStopRound)*length(lambda)*length(alpha)*length(scalePosWeight))
   )
@@ -112,7 +112,7 @@ setGradientBoostingMachine <- function(ntrees=c(100, 300), nthread=20, earlyStop
     fitFunction = "fitRclassifier",
     param = param
   )
-
+  
   class(result) <- 'modelSettings' 
   
   return(result)
@@ -123,7 +123,7 @@ setGradientBoostingMachine <- function(ntrees=c(100, 300), nthread=20, earlyStop
 varImpXgboost <- function(
   model,
   covariateMap
-  ){
+){
   
   varImp <- xgboost::xgb.importance(model = model)
   
@@ -142,7 +142,7 @@ predictXgboost <- function(
   plpModel, 
   data, 
   cohort
-  ){
+){
   
   if(class(data) == 'plpData'){
     # convert
@@ -167,7 +167,7 @@ predictXgboost <- function(
   } else{
     model <- plpModel
   }
-    
+  
   pred <- data.frame(value = stats::predict(model, newData))
   prediction <- cohort
   prediction$value <- pred$value
@@ -177,7 +177,7 @@ predictXgboost <- function(
   prediction <- prediction %>% 
     dplyr::select(-.data$rowId) %>%
     dplyr::rename(rowId = .data$originalRowId)
-
+  
   attr(prediction, "metaData") <- list(modelType = attr(plpModel, "modelType"))
   
   return(prediction)
@@ -188,18 +188,18 @@ fitXgboost <- function(
   labels,
   hyperParameters,
   settings
-  ){
+){
   
   if(!is.null(hyperParameters$earlyStopRound)){
     trainInd <- sample(nrow(dataMatrix), nrow(dataMatrix)*0.9)
     train <- xgboost::xgb.DMatrix(
       data = dataMatrix[trainInd,, drop = F], 
       label = labels$outcomeCount[trainInd]
-      )
+    )
     test <- xgboost::xgb.DMatrix(
       data = dataMatrix[-trainInd,, drop = F], 
       label = labels$outcomeCount[-trainInd]
-      )
+    )
     watchlist <- list(train=train, test=test)
     
   } else{
@@ -235,7 +235,7 @@ fitXgboost <- function(
     print_every_n = 10,
     early_stopping_rounds = hyperParameters$earlyStopRound,
     maximize = T
-    )
+  )
   
   return(model)
 }

@@ -117,7 +117,7 @@ splitData <- function(plpData = plpData,
   args <- list(population = population,
                splitSettings = splitSettings)
   splitId <- do.call(eval(parse(text = fun)), args)
-
+  
   # now separate the data:
   if(sum(splitId$index<0)==0){
     # NO TEST SET
@@ -128,19 +128,10 @@ splitData <- function(plpData = plpData,
     trainData$folds <- trainId
   
     #restrict to trainIds
-    if(length(trainId$rowId)<200000){
-      trainData$covariateData <- limitCovariatesToPopulation(
+    trainData$covariateData <- limitCovariatesToPopulation(
         plpData$covariateData, 
-        trainId$rowId
-        )
-    } else{
-      trainData$covariateData <- batchRestrict(
-        plpData$covariateData, 
-        data.frame(rowId = trainId$rowId), 
-        sizeN = 10000000
-        )
-    }
-    
+        trainId$rowId)
+
     #trainData$covariateData <- Andromeda::andromeda()
     #trainData$covariateData$covariates <- plpData$covariateData$covariates %>% dplyr::filter(.data$rowId %in% trainId$rowId)
     #trainData$covariateData$covariateRef <- plpData$covariateRef
@@ -169,18 +160,10 @@ splitData <- function(plpData = plpData,
     trainData$folds <- trainId
     
     #restrict to trainIds
-    if(length(trainId$rowId)<200000){
-      trainData$covariateData <- limitCovariatesToPopulation(
-        plpData$covariateData, 
-        trainId$rowId
-      )
-    } else{
-      trainData$covariateData <- batchRestrict(
-        plpData$covariateData, 
-        data.frame(rowId = trainId$rowId), 
-        sizeN = 10000000
-        )
-    }
+    trainData$covariateData <- limitCovariatesToPopulation(
+          plpData$covariateData, 
+          trainId$rowId)
+    
     attr(trainData, "metaData") <- list(
       outcomeId = attr(population, "metaData")$outcomeId,
       cohortId = attr(population, "metaData")$cohortId,
@@ -202,16 +185,9 @@ splitData <- function(plpData = plpData,
     class(testData) <- 'plpData'
     testData$labels <- population %>% dplyr::filter(.data$rowId %in% testId$rowId)
     
-    if(length(testId$rowId)<200000){
-      testData$covariateData <- limitCovariatesToPopulation(
+    testData$covariateData <- limitCovariatesToPopulation(
         plpData$covariateData, 
-        testId$rowId
-      )
-    } else{
-      testData$covariateData <- batchRestrict(plpData$covariateData, 
-        data.frame(rowId = testId$rowId), 
-        sizeN = 10000000)
-    }
+        testId$rowId)
     class(testData$covariateData) <- "CovariateData"
     
     result <- list(
@@ -219,9 +195,10 @@ splitData <- function(plpData = plpData,
       Test = testData
       )
   }
+  
   class(result) <- 'splitData'
   delta <- Sys.time() - startTime
-  ParallelLogger::logInfo("Data splitting took ", signif(delta, 3), " ", attr(delta, "units"))
+  ParallelLogger::logInfo("Data spliting took ", signif(delta, 3), " ", attr(delta, "units"))
   return(result)
 }
 
@@ -230,20 +207,18 @@ dataSummary <- function(data){
   #Test/Train: lsit(covariates,covariateRef, label, folds)
   
   ParallelLogger::logInfo('Train Set:')
-  result <- data$Train$labels %>% 
-    dplyr::inner_join(data$Train$folds, by = 'rowId') %>% 
-    dplyr::group_by(.data$index) %>%
-    dplyr::summarise(N = length(.data$outcomeCount),
-      outcomes = sum(.data$outcomeCount)) %>% 
-    dplyr::collect()
+  
+  data.table::setDT(data$Train$labels)
+  data.table::setDT(data$Train$folds)
+  result <- data$Train$labels[data$Train$folds, on='rowId', nomatch=0
+                               ][, by='index', .(N = length(outcomeCount), 
+                                                 outcomes = sum(outcomeCount))]
+  
   
   ParallelLogger::logInfo(paste('Fold ', result$index ,' ', result$N, ' patients with ', result$outcomes, ' outcomes', sep ='', collapse = ' - '))
   
-  
-  result <- data$Train$covariateData$covariates %>% 
-    dplyr::group_by(.data$covariateId) %>% 
-    dplyr::summarise(N = length(.data$covariateValue)) %>% 
-    dplyr::collect()
+  result <- data$Train$covariateData$covariates %>% dplyr::group_by(.data$covariateId) %>%
+    dplyr::summarise(n()) %>% dplyr::collect()
   
   ParallelLogger::logInfo(paste0(nrow(result), ' covariates in train data'))
   
@@ -255,6 +230,8 @@ dataSummary <- function(data){
     ParallelLogger::logInfo(paste0(nrow(result), ' patients with ', sum(result$outcomeCount>0), ' outcomes'))
     
   }
+  data.table::setDF(data$Train$labels)
+  data.table::setDF(data$Train$folds)
   
   return(invisible(TRUE))
 }

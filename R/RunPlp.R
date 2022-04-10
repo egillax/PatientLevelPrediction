@@ -219,6 +219,7 @@ runPlp <- function(
   saveDirectory = getwd()
 ){
   startTime <- Sys.time()
+  
   # start log 
   analysisPath <- file.path(saveDirectory, analysisId)
   logSettings$saveDirectory <- analysisPath
@@ -503,11 +504,13 @@ runPlp <- function(
   class(results) <- c('runPlp')
   
   ParallelLogger::logInfo("Run finished successfully.")
+  
   # save the results
   ParallelLogger::logInfo(paste0('Saving PlpResult'))
   tryCatch(savePlpResult(results, file.path(analysisPath,'plpResult')),
     finally= ParallelLogger::logTrace('Done.'))
   ParallelLogger::logInfo(paste0('plpResult saved to ..\\', analysisPath ,'\\plpResult'))
+  
   delta <- Sys.time() - startTime
   ParallelLogger::logInfo("RunPlp took ", signif(delta, 3), " ", attr(delta, "units"))
   return(results)

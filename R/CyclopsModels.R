@@ -23,7 +23,6 @@ fitCyclopsModel <- function(
   search='adaptive',
   analysisId,
   ...){
-  
   # check plpData is coo format:
   if (!FeatureExtraction::isCovariateData(trainData$covariateData)){
     stop("Needs correct covariateData")
@@ -40,9 +39,10 @@ fitCyclopsModel <- function(
   covariates <- filterCovariateIds(param, trainData$covariateData)
   
   start <- Sys.time() 
-  
+  outcomes <- trainData$covariateData$labels
+  class(outcomes) <- 'Dataset'
   cyclopsData <- Cyclops::convertToCyclopsData(
-    outcomes = trainData$covariateData$labels,
+    outcomes = outcomes,
     covariates = covariates,
     addIntercept = settings$addIntercept,
     modelType = modelTypeToCyclopsModelType(settings$modelType),

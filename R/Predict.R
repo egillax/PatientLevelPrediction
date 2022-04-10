@@ -34,7 +34,7 @@
 # parent predict that calls the others
 #' @export
 predictPlp <- function(plpModel, plpData, population, timepoint){
-  startTime <- Sys.time()
+  startTime <- Sys.time()  
   if(is.null(plpModel))
     stop('No model input')
   if(is.null(population))
@@ -131,25 +131,13 @@ applyTidyCovariateData <- function(
   preprocessSettings
 )
 {
-  
   if(!FeatureExtraction::isCovariateData(covariateData)){stop("Data not of class CovariateData")}
-  
-  newCovariateData <- Andromeda::andromeda(covariateRef = covariateData$covariateRef,
+  newCovariateData <- list(covariateRef = covariateData$covariateRef,
     analysisRef = covariateData$analysisRef)
   
   maxs <- preprocessSettings$normFactors
   deleteRedundantCovariateIds <- preprocessSettings$deletedRedundantCovariateIds
   deletedInfrequentCovariateIds <- preprocessSettings$deletedInfrequentCovariateIds
-  
-  # --- added for speed
-  deleteCovariateIds <- c(deleteRedundantCovariateIds,deletedInfrequentCovariateIds)
-  temp <- covariateData$covariateRef %>% dplyr::collect()
-  allCovariateIds <- temp$covariateId
-  covariateData$includeCovariates <- data.frame(covariateId = allCovariateIds[!allCovariateIds%in%deleteCovariateIds])
-  Andromeda::createIndex(covariateData$includeCovariates, c('covariateId'),
-    indexName = 'includeCovariates_covariateId')
-  on.exit(covariateData$includeCovariates <- NULL, add = TRUE)
-  # ---
   
   ParallelLogger::logInfo("Removing infrequent and redundant covariates and normalizing")
   start <- Sys.time()       
@@ -163,33 +151,28 @@ applyTidyCovariateData <- function(
     }
     on.exit(covariateData$maxes <- NULL, add = TRUE)
     
-    # --- added for speed
-    Andromeda::createIndex(covariateData$maxes, c('covariateId'),
-      indexName = 'maxes_covariateId')
-    # ---
-    
-    newCovariateData$covariates <- covariateData$covariates %>%  
+   deleteCovariateIds <- c(deleteRedundantCovariateIds, deletedInfrequentCovariateIds)
+   allCovariateIds <- covariateData$covariateRef$covariateId
+   covariateData$includeCovariates <- data.frame(covariateId = allCovariateIds[!allCovariateIds%in%deleteCovariateIds])
+   
+   newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters,8)), collapse=''))
+   covariateData$covariates %>%  
       dplyr::inner_join(covariateData$includeCovariates, by='covariateId') %>% # added as join
       dplyr::inner_join(covariateData$maxes, by = 'covariateId') %>%
       dplyr::mutate(value = 1.0*.data$covariateValue/.data$maxValue) %>%
       dplyr::select(- .data$covariateValue) %>%
-      dplyr::rename(covariateValue = .data$value)
+      dplyr::rename(covariateValue = .data$value) %>% arrow::write_dataset(path=newPath,format='feather')
+   newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
   } else{
-    newCovariateData$covariates <- covariateData$covariates %>% 
+    newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters,8)), collapes=''))
+    covariateData$covariates %>% 
       dplyr::inner_join(covariateData$includeCovariates, by='covariateId')
+    newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
   }
   
   # reduce covariateRef
   newCovariateData$covariateRef <- covariateData$covariateRef %>% 
     dplyr::inner_join(covariateData$includeCovariates, by='covariateId')
-  
-  # adding index for restrict to pop
-  Andromeda::createIndex(
-    newCovariateData$covariates, 
-    c('rowId'),
-    indexName = 'ncovariates_rowId'
-  )
-  
   
   class(newCovariateData) <- "CovariateData"
   

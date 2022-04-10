@@ -64,7 +64,7 @@ createPreprocessSettings <- function(
 #' The data processed 
 preprocessData <- function (covariateData, 
                             preprocessSettings){
-  
+    
   metaData <- attr(covariateData, "metaData")
   
   checkIsClass(covariateData, c("CovariateData"))
@@ -75,10 +75,9 @@ preprocessData <- function (covariateData,
   ParallelLogger::logDebug(paste0('removeRedundancy: ', preprocessSettings$removeRedundancy))
   
   preprocessSettings$covariateData <- covariateData
-  startTime <- Sys.time()
-  covariateData <- do.call(FeatureExtraction::tidyCovariateData, preprocessSettings)
-  delta <- Sys.time() - startTime
-  ParallelLogger::logInfo("Tidying covariates took ", signif(delta, 3), " ", attr(delta, "units"))
+  covariateData <- do.call(tidyCovariateData, preprocessSettings)
+  if (!isCovariateData(covariateData))
+    stop("Data not of class CovariateData")
   
   #update covariateRed
   removed <- unique(

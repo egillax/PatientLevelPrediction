@@ -42,7 +42,7 @@
 #'
 #' @export
 toSparseM <- function(plpData, cohort = NULL, map=NULL){
-  startTime <- Sys.time()
+  startTime <- Sys.time()  
   ParallelLogger::logInfo(paste0('starting toSparseM'))
   
   ParallelLogger::logDebug(
@@ -87,11 +87,11 @@ toSparseM <- function(plpData, cohort = NULL, map=NULL){
   ParallelLogger::logInfo(paste0('toSparseM non temporal used'))
     
   checkRam(newcovariateData, 0.9)  # estimates size of RAM required and makes sure it is less that 90%
-    
+  newcovariateData$covariates <- newcovariateData$covariates %>% collect() # if I don't do this something weird happens...
   data <- Matrix::sparseMatrix(
-    i = newcovariateData$covariates %>% dplyr::select(.data$rowId) %>% dplyr::pull(),
-    j = newcovariateData$covariates %>% dplyr::select(.data$columnId) %>% dplyr::pull(),
-    x = newcovariateData$covariates %>% dplyr::select(.data$covariateValue) %>% dplyr::pull(),
+    i = newcovariateData$covariates %>% dplyr::pull(rowId),
+    j = newcovariateData$covariates %>% dplyr::pull(columnId),
+    x = newcovariateData$covariates %>% dplyr::pull(covariateValue),
     dims=c(maxX,maxY)
   )
     
@@ -106,7 +106,7 @@ toSparseM <- function(plpData, cohort = NULL, map=NULL){
     covariateMap = as.data.frame(newcovariateData$mapping)
   )
   delta <- Sys.time() - startTime
-  ParallelLogger::logInfo("Sparse matrix conversion took ", signif(delta, 3), " ", attr(delta, "units"))
+  ParallelLogger::logInfo("Sparse matrix conversion tooks ", signif(delta, 3), " ", attr(delta, "units"))
   return(result)
 }
 
@@ -131,45 +131,41 @@ MapIds <- function(
   } else{
     rowMap <- data.frame(
       rowId = covariateData$covariates %>% 
-        dplyr::distinct(.data$rowId) %>% 
-        dplyr::pull()
+        dplyr::distinct(.data$rowId) 
     )
     rowMap$xId <- 1:nrow(rowMap)
   }
-  
-  covariateData$rowMap <- rowMap
-  on.exit(covariateData$rowMap <- NULL)
   
   # change the rowIds in covariateData$covariates
   if(is.null(mapping)){
   
     mapping <- data.frame(
       covariateId = covariateData$covariates %>% 
-        dplyr::inner_join(covariateData$rowMap, by = 'rowId') %>%  # first restrict the covariates to the rowMap$rowId
-        dplyr::distinct(.data$covariateId) %>% 
-        dplyr::pull()
+        dplyr::inner_join(rowMap, by = 'rowId') %>%  # first restrict the covariates to the rowMap$rowId
+        dplyr::distinct(.data$covariateId) 
     )
     mapping$columnId <- 1:nrow(mapping)
   }
-  covariateData$mapping <- mapping
-  on.exit(covariateData$mapping <- NULL, add = T)
   
-  newCovariateData <- Andromeda::andromeda()
+  newCovariateData <- list()
   # change the covariateIds in covariates
-    newCovariateData$covariates <- covariateData$covariates %>%
-      dplyr::inner_join(covariateData$mapping, by = 'covariateId')
+  newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
+  covariateData$covariates %>%
+      dplyr::inner_join(mapping, by = 'covariateId') %>%
+      arrow::write_dataset(newPath, format='feather')
+  newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
   
-    
-    # change the covariateIds in covariateRef
-    newCovariateData$covariateRef <- covariateData$mapping %>%
+  # change the covariateIds in covariateRef
+  newCovariateData$covariateRef <- mapping %>%
       dplyr::inner_join(covariateData$covariateRef, by = 'covariateId')
     
-    # change the rowId in covariates
-    newCovariateData$rowMap <- rowMap
-    newCovariateData$covariates <- newCovariateData$covariates %>%
-      dplyr::inner_join(newCovariateData$rowMap, by = 'rowId') %>% 
+  # change the rowId in covariates
+  newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
+  newCovariateData$covariates %>%
+      dplyr::inner_join(rowMap, by = 'rowId') %>% 
       dplyr::select(- .data$rowId) %>%
-      dplyr::rename(rowId = .data$xId)
+      dplyr::rename(rowId = .data$xId) %>% arrow::write_dataset(newPath, format='feather')
+  newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
     
     if(!is.null(cohort)){
       # change the rowId in labels
@@ -194,8 +190,8 @@ checkRam <- function(covariateData, maxPercent){
   
   ensure_installed('memuse')
   
-  nrowV <- covariateData$covariates %>% dplyr::summarise(size = dplyr::n()) %>% dplyr::collect()
-  estRamB <- (nrowV$size/1000000*24000984)
+  nrowV <- covariateData$covariates %>% dplyr::tally() %>% compute() %>% dplyr::collect()
+  estRamB <- (nrowV$n/1000000*24000984)
   
   ramFree <- memuse::Sys.meminfo()
   ramFree <- as.double(ramFree$freeram)

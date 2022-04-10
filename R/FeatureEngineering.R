@@ -227,7 +227,7 @@ randomForestFeatureSelection <- function(
 
 
 featureEngineer <- function(data, featureEngineeringSettings){
-  
+  startTime <- Sys.time()  
   ParallelLogger::logInfo('Starting Feature Engineering')
   
   # if a single setting, make it a list
@@ -244,7 +244,8 @@ featureEngineer <- function(data, featureEngineeringSettings){
   }
   
   ParallelLogger::logInfo('Done Feature Engineering')
-  
+  delta <- startTime - Sys.time()
+  ParallelLogger::logInfo("Feature engineering took ", signif(delta, 3), " ", attr(delta, "units"))
   return(data)
   
 }

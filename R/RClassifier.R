@@ -15,7 +15,6 @@ fitRclassifier <- function(trainData, param, search = 'grid', analysisId){
   ParallelLogger::logInfo(paste0('Training ', settings$modelName))
   
   set.seed(settings$seed)
-  
   # convert data into sparse Matrix:
   result <- toSparseM(
     trainData,

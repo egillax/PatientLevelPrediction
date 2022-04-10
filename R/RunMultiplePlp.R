@@ -299,8 +299,7 @@ savePlpAnalysesJson <- function(
 
   
   # save this as a json
-  modelDesignList <- lapply(modelDesignList, function(x) prepareToJson(x))
-  jsonSettings <- list(analyses = modelDesignList) # TODO: rename this ModelDesignList?
+  jsonSettings <- list(analyses = modelDesignList)
   
   if(!is.null(saveDirectory)){
     checkIsClass(saveDirectory, 'character')
@@ -309,16 +308,7 @@ savePlpAnalysesJson <- function(
       dir.create(saveDirectory, recursive = T)
     }
     
-    modelDesignList <- jsonlite::toJSON(
-      x = jsonSettings, 
-      pretty = T, 
-      digits = 23, 
-      auto_unbox=TRUE, 
-      null = "null"
-      )
-    write(modelDesignList, file.path(saveDirectory,"predictionAnalysisList.json"))
-    
-    # should we add splitSettings to this and the input?
+    saveJsonFile(jsonSettings, file=file.path(saveDirectory,"predictionAnalysisList.json"))
     
     return(file.path(saveDirectory,"predictionAnalysisList.json")) 
   }
@@ -354,35 +344,12 @@ loadPlpAnalysesJson <- function(
     ParallelLogger::logError('predictionAnalysisList.json not found ')
   }
   
-  
   json <- tryCatch(
-    {readChar(jsonFileLocation, file.info(jsonFileLocation)$size)},
+    {loadJsonFile(fileName = file.path(jsonFileLocation))},
     error= function(cond) {
       ParallelLogger::logInfo('Issue with loading json file...');
       ParallelLogger::logError(cond)
     })
-  json <- tryCatch(
-    {jsonlite::fromJSON(json, simplifyVector = T, simplifyDataFrame = F, simplifyMatrix = T)},
-    error = function(cond) {
-      ParallelLogger::logInfo('Issue with parsing json object...');
-      ParallelLogger::logError(cond)
-    })
-  json$analyses <- tryCatch(
-    {lapply(json$analyses, function(x) prepareToRlist(x))},
-    error = function(cond) {
-      ParallelLogger::logInfo('Issue converting json to R list...');
-      ParallelLogger::logError(cond)
-    })
-  
-  # if splitSettings in json
-  if('splitSettings' %in% names(json)){
-    # update the splitsetting (move this into load/saveplpAnalysis)
-    if('attributes' %in% names(json$splitSettings)){
-      atts <- json$splitSettings$attributes
-      json$splitSettings$attributes <- NULL
-      attributes(json$splitSettings) <- atts
-    }
-  }
   
   return(json)
   
