@@ -283,6 +283,16 @@ computeAuc <- function(prediction,
   }
 }
 
+aucWithCi <- function(prediction, truth){
+  auc <- pROC::auc(as.factor(truth), prediction, direction="<")
+  aucci <-pROC::ci(auc)
+  return(data.frame(auc = aucci[2], auc_lb95ci = aucci[1], auc_ub95ci = aucci[3]))
+}
+
+aucWithoutCi <- function(prediction, truth){
+  auc <- pROC::auc(as.factor(truth), prediction, direction="<")
+  return(as.double(auc))
+}
 
 #' brierScore
 #'

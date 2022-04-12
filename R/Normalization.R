@@ -151,20 +151,16 @@ tidyCovariateData <- function(covariateData,
       ParallelLogger::logInfo("Removing ", nrow(toDelete), " infrequent covariates")
     }
     if (length(deleteCovariateIds) > 0) {
-      newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
-      newCovariates %>% 
-        filter(!.data$covariateId %in% deleteCovariateIds) %>% 
-        arrow::write_dataset(newPath,format='feather')
-      newCovariates <- arrow::open_dataset(newPath, format='feather')
+      covariates <- newCovariates %>% filter(!.data$covariateId %in% deleteCovariateIds) 
+      newCovariates <- createArrow(covariates, delete=TRUE)
     }
     if (normalize) {
       ParallelLogger::logInfo("Normalizing covariates")
-      newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
-      newCovariates %>% 
+      covariates <- newCovariates %>% 
         inner_join(covariateData$maxValuePerCovariateId, by = "covariateId") %>%
         mutate(covariateValue = .data$covariateValue / .data$maxValue) %>%
-        select(-.data$maxValue) %>% arrow::write_dataset(newPath, format='feather')
-      newCovariates <- arrow::open_dataset(newPath, format='feather')
+        select(-.data$maxValue)
+      newCovariates <- createArrow(covariates, delete=TRUE)
       metaData$normFactors <- covariateData$maxValuePerCovariateId %>%
         collect()
     } 

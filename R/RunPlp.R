@@ -468,7 +468,7 @@ runPlp <- function(
   executionSummary <- list(
     PackageVersion = list(
       rVersion= R.Version()$version.string,
-      packageVersion = utils::packageVersion("PatientLevelPrediction")
+      packageVersion = utils::packageVersion("PatientLevelPredictionArrow")
     ),
     PlatformDetails= list(
       platform = R.Version()$platform,

@@ -27,11 +27,9 @@ limitCovariatesToPopulation <- function(covariateData, rowIds) {
   covariateData$pop <- data.frame(rowId = rowIds)
   
   on.exit(covariateData$pop <- NULL, add = T)
-  
-  newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
-  covariateData$covariates %>% dplyr::inner_join(covariateData$pop, by='rowId') %>% arrow::write_dataset(newPath, format='feather')
-  newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
-  
+  covariates <- covariateData$covariates %>% dplyr::inner_join(covariateData$pop, by='rowId')
+  newCovariateData$covariates <- createArrow(covariates)
+ 
   metaData$populationSize <- length(rowIds)
   attr(newCovariateData, 'metaData') <- metaData
   class(newCovariateData) <- "CovariateData"
@@ -67,3 +65,52 @@ calculatePrevs <- function(plpData, population){
   return(as.data.frame(prevs))
 }
 
+# creates an arrow dataset in a temp directory from a query object, unlinks
+# old query object files
+createArrow <- function(object, name=NULL, delete=FALSE) {
+  UseMethod("createArrow")
+}
+
+
+
+createArrow.default <- function(object, name=NULL, delete=FALSE) {
+  if (is.null(name)) {
+    name <- deparse(substitute(object))
+  }
+  
+  getDataObject <- function(object) {
+    if (class(object)[[1]] == 'arrow_dplyr_query') {
+      data <- object$.data
+      data <- getDataObject(data)
+    } else {
+      return(object)
+    }
+    return(data)
+  }
+  
+  dataObject <- getDataObject(object)
+  oldFiles <- dataObject$files
+  oldDir <- dirname(oldFiles[[1]])
+  newPath <- file.path(tempdir(), paste(c(name,'_', sample(letters,8)), collapse = ''))
+  arrow::write_dataset(object, path=newPath, format='feather')
+  dataset <- arrow::open_dataset(newPath, format='feather')
+  
+  if (delete){
+  # clean up old files, use with caution
+  for (file in oldFiles) {
+    unlink(file)
+  }
+  unlink(oldDir, recursive = TRUE)
+  }
+  return(dataset)
+}
+
+createArrow.data.frame <- function(object, name=NULL) {
+  if (is.null(name)) {
+    name <- deparse(substitute(object))
+  }
+  newPath <- file.path(tempdir(), paste(c(name,'_', sample(letters,8)), collapse = ''))
+  arrow::write_dataset(object, path=newPath, format='feather')
+  dataset <- arrow::open_dataset(newPath, format='feather')
+  return(dataset)
+}

@@ -149,23 +149,21 @@ MapIds <- function(
   
   newCovariateData <- list()
   # change the covariateIds in covariates
-  newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
-  covariateData$covariates %>%
-      dplyr::inner_join(mapping, by = 'covariateId') %>%
-      arrow::write_dataset(newPath, format='feather')
-  newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
+  
+  covariates <- covariateData$covariates %>%
+      dplyr::inner_join(mapping, by = 'covariateId')
+  newCovariateData$covariates <- createArrow(covariates)
   
   # change the covariateIds in covariateRef
   newCovariateData$covariateRef <- mapping %>%
       dplyr::inner_join(covariateData$covariateRef, by = 'covariateId')
     
   # change the rowId in covariates
-  newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters, 8)), collapse = ''))
-  newCovariateData$covariates %>%
+  covariates <- newCovariateData$covariates %>%
       dplyr::inner_join(rowMap, by = 'rowId') %>% 
       dplyr::select(- .data$rowId) %>%
-      dplyr::rename(rowId = .data$xId) %>% arrow::write_dataset(newPath, format='feather')
-  newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
+      dplyr::rename(rowId = .data$xId)
+  newCovariateData$covariates <- createArrow(covariates, delete=TRUE)
     
     if(!is.null(cohort)){
       # change the rowId in labels
