@@ -1,4 +1,4 @@
-Package: PatientLevelPredictionArrow
+Package: PatientLevelPrediction
 Type: Package
 Title: Developing patient level prediction using data in the OMOP Common Data
     Model
@@ -26,6 +26,7 @@ Depends:
     FeatureExtraction (>= 3.0.0)
 Imports:
     Andromeda,
+    arrow,
     Cyclops (>= 3.0.0),
     DatabaseConnector (>= 5.0.0),
     dplyr,

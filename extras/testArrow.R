@@ -8,6 +8,7 @@ plpData <- simulatePlpData(
   n = sampleSize
 )
 
+
 populationSet <- PatientLevelPredictionArrow::createStudyPopulationSettings(
   requireTimeAtRisk = F, 
   riskWindowStart = 1, 
