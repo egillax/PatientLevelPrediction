@@ -1,4 +1,4 @@
-Package: PatientLevelPrediction
+Package: PatientLevelPredictionArrow
 Type: Package
 Title: Developing patient level prediction using data in the OMOP Common Data
     Model
