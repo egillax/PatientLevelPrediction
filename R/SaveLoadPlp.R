@@ -86,7 +86,12 @@ loadCovariateData <- function(file) {
                                     format='feather')
   
   newCovariateData$covariates <- covariates
-  attributes(newCovariateData) <- readRDS(file.path(file, 'attributes.rds'))
+  attributes <- readRDS(file.path(file, 'attributes.rds'))
+  
+  metaData <- attributes$metaData
+  attr(newCovariateData, 'metaData') <- metaData
+  class(newCovariateData) <- attributes$class
+  
   return(newCovariateData)
   }
 
