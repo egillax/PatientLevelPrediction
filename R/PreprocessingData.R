@@ -76,7 +76,7 @@ preprocessData <- function (covariateData,
   
   preprocessSettings$covariateData <- covariateData
   covariateData <- do.call(tidyCovariateData, preprocessSettings)
-  if (!isCovariateData(covariateData))
+  if (!FeatureExtraction::isCovariateData(covariateData))
     stop("Data not of class CovariateData")
   
   #update covariateRed

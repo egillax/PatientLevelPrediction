@@ -1,6 +1,6 @@
 printHeader <- function(plpData, cohortId, outcomeId , analysisId, analysisName, ExecutionDateTime){
   
-  ParallelLogger::logInfo(paste0('Patient-Level Prediction Package version ', utils::packageVersion("PatientLevelPredictionArrow")))
+  ParallelLogger::logInfo(paste0('Patient-Level Prediction Package version ', utils::packageVersion("PatientLevelPrediction")))
   
   ParallelLogger::logInfo(paste0('Study started at: ', ExecutionDateTime))
   

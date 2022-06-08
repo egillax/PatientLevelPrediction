@@ -41,8 +41,7 @@ predictPlp <- function(plpModel, plpData, population, timepoint){
     stop('No population input')
   if(is.null(plpData))
     stop('No plpData input')
-  
-  
+
   # do feature engineering/selection
   plpData$covariateData <- do.call(
     applyFeatureengineering, 
@@ -53,7 +52,6 @@ predictPlp <- function(plpModel, plpData, population, timepoint){
   )
   
   ParallelLogger::logTrace('did FE')
-  
   # do preprocessing
   plpData$covariateData <- do.call(
     applyTidyCovariateData, 
@@ -155,19 +153,16 @@ applyTidyCovariateData <- function(
    allCovariateIds <- covariateData$covariateRef$covariateId
    covariateData$includeCovariates <- data.frame(covariateId = allCovariateIds[!allCovariateIds%in%deleteCovariateIds])
    
-   newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters,8)), collapse=''))
-   covariateData$covariates %>%  
+   newCovariateData$covariates <- covariateData$covariates %>%  
       dplyr::inner_join(covariateData$includeCovariates, by='covariateId') %>% # added as join
       dplyr::inner_join(covariateData$maxes, by = 'covariateId') %>%
       dplyr::mutate(value = 1.0*.data$covariateValue/.data$maxValue) %>%
-      dplyr::select(- .data$covariateValue) %>%
-      dplyr::rename(covariateValue = .data$value) %>% arrow::write_dataset(path=newPath,format='feather')
-   newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
+      dplyr::select(-.data$covariateValue, -.data$maxValue) %>%
+      dplyr::rename(covariateValue = .data$value) %>% createArrow()
   } else{
-    newPath <- file.path(tempdir(), paste(c('covariates_', sample(letters,8)), collapes=''))
-    covariateData$covariates %>% 
-      dplyr::inner_join(covariateData$includeCovariates, by='covariateId')
-    newCovariateData$covariates <- arrow::open_dataset(newPath, format='feather')
+    newCovariateData$covariates <- covariateData$covariates %>% 
+      dplyr::inner_join(covariateData$includeCovariates, by='covariateId') %>%
+      createArrow()
   }
   
   # reduce covariateRef

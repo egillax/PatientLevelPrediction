@@ -340,7 +340,6 @@ runPlp <- function(
   }
   
   if(executeSettings$runPreprocessData){
-    
     data$Train$covariateData <- tryCatch(
       {
         preprocessData(
@@ -468,7 +467,7 @@ runPlp <- function(
   executionSummary <- list(
     PackageVersion = list(
       rVersion= R.Version()$version.string,
-      packageVersion = utils::packageVersion("PatientLevelPredictionArrow")
+      packageVersion = utils::packageVersion("PatientLevelPrediction")
     ),
     PlatformDetails= list(
       platform = R.Version()$platform,

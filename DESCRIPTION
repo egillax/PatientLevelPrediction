@@ -1,4 +1,4 @@
-Package: PatientLevelPredictionArrow
+Package: PatientLevelPrediction
 Type: Package
 Title: Developing patient level prediction using data in the OMOP Common Data
     Model
@@ -23,9 +23,10 @@ BugReports: https://github.com/OHDSI/PatientLevelPrediction/issues
 VignetteBuilder: knitr
 Depends:
     R (>= 3.3.0),
-    FeatureExtraction (>= 3.0.0)
 Imports:
     Andromeda,
+    FeatureExtraction (>= 3.0.0),
+    data.table,
     arrow,
     Cyclops (>= 3.0.0),
     DatabaseConnector (>= 5.0.0),
@@ -47,7 +48,8 @@ Imports:
     survival,
     tibble,
     tidyr,
-    utils
+    utils,
+    magrittr
 Suggests:
     AUC,
     BigKnn (>= 1.0.0),
@@ -87,5 +89,5 @@ Remotes:
     ohdsi/FeatureExtraction,
     ohdsi/IterativeHardThresholding,
     ohdsi/ParallelLogger
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 Encoding: UTF-8

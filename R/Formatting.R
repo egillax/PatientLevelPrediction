@@ -53,7 +53,6 @@ toSparseM <- function(plpData, cohort = NULL, map=NULL){
         dplyr::pull() 
     )
   )
-  
   # assign covariateId to colummId specified in map (if null create columnIds)
   # assign rowId to xId 
   # return the new covariateData (rowId changes in covariates plus covariates/covariateRef with modified columnIds)
@@ -87,7 +86,7 @@ toSparseM <- function(plpData, cohort = NULL, map=NULL){
   ParallelLogger::logInfo(paste0('toSparseM non temporal used'))
     
   checkRam(newcovariateData, 0.9)  # estimates size of RAM required and makes sure it is less that 90%
-  newcovariateData$covariates <- newcovariateData$covariates %>% collect() # if I don't do this something weird happens...
+  newcovariateData$covariates <- newcovariateData$covariates %>% dplyr::collect()
   data <- Matrix::sparseMatrix(
     i = newcovariateData$covariates %>% dplyr::pull(rowId),
     j = newcovariateData$covariates %>% dplyr::pull(columnId),
@@ -138,9 +137,8 @@ MapIds <- function(
   
   # change the rowIds in covariateData$covariates
   if(is.null(mapping)){
-  
     mapping <- data.frame(
-      covariateId = covariateData$covariates %>% 
+      covariateId = covariateData$covariates %>% dplyr::arrange(covariateId) %>%
         dplyr::inner_join(rowMap, by = 'rowId') %>%  # first restrict the covariates to the rowMap$rowId
         dplyr::distinct(.data$covariateId) 
     )
@@ -188,7 +186,7 @@ checkRam <- function(covariateData, maxPercent){
   
   ensure_installed('memuse')
   
-  nrowV <- covariateData$covariates %>% dplyr::tally() %>% compute() %>% dplyr::collect()
+  nrowV <- covariateData$covariates %>% dplyr::tally() %>% dplyr::collect()
   estRamB <- (nrowV$n/1000000*24000984)
   
   ramFree <- memuse::Sys.meminfo()

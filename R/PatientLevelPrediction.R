@@ -1,4 +1,4 @@
-# @file PatientLevelPredictionArrow.R
+# @file PatientLevelPrediction.R
 #
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
@@ -21,11 +21,11 @@
 #' @description A package for running predictions using data in the OMOP CDM
 #'
 #' @docType package
-#' @name PatientLevelPredictionArrow
+#' @name PatientLevelPrediction
 #' @importFrom dplyr %>%
+#' @importFrom magrittr "%>%"
 #' @importFrom data.table :=
 #' @importFrom rlang .data
-#' @import FeatureExtraction
 NULL
 
 #' A simulation profile

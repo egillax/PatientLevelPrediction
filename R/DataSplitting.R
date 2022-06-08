@@ -195,6 +195,8 @@ splitData <- function(plpData = plpData,
       Test = testData
       )
   }
+  # duplicate folds for train and validation
+  # result$Train$folds <- list(train = result$Train$folds, validation = result$Train$folds)
   
   class(result) <- 'splitData'
   delta <- Sys.time() - startTime
@@ -205,7 +207,6 @@ splitData <- function(plpData = plpData,
 
 dataSummary <- function(data){
   #Test/Train: lsit(covariates,covariateRef, label, folds)
-  
   ParallelLogger::logInfo('Train Set:')
   
   data.table::setDT(data$Train$labels)

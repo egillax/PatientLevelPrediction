@@ -333,7 +333,7 @@ covariateSummarySubset <- function(
       CovariateCount = n(),
       sumVal = sum(.data$covariateValue,na.rm = TRUE),
       sumSquares = sum(.data$covariateValue^2,na.rm = TRUE)
-    ) %>% collect() %>% 
+    ) %>% dplyr::collect() %>% 
     dplyr::mutate(
       CovariateMean = 1.0*.data$sumVal/N,
       CovariateStDev = sqrt(.data$sumSquares/N - (.data$sumVal/N)^2 ),
