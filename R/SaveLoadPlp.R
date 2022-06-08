@@ -34,7 +34,8 @@
 #' # todo
 #'
 #' @export
-savePlpData <- function(plpData, file, envir=NULL, overwrite=F) {
+savePlpData <- function(plpData, file, envir=NULL, overwrite=F,
+                        andromeda=T) {
   if (missing(plpData))
     stop("Must specify plpData")
   if (missing(file))
@@ -54,13 +55,42 @@ savePlpData <- function(plpData, file, envir=NULL, overwrite=F) {
   if(is.null(plpData$metaData$call$sampleSize)){  # fixed a bug when sampleSize is NULL
     plpData$metaData$call$sampleSize <- 'NULL'
   }
-  
+  if (andromeda) {
   Andromeda::saveAndromeda(plpData$covariateData, file = file.path(file, "covariates"), maintainConnection = T)
+  } else {
+  saveCovariateData(plpData$covariateData, file=file.path(file, 'covariates'))
+  }
   saveRDS(plpData$timeRef, file = file.path(file, "timeRef.rds"))
   saveRDS(plpData$cohorts, file = file.path(file, "cohorts.rds"))
   saveRDS(plpData$outcomes, file = file.path(file, "outcomes.rds"))
   saveRDS(plpData$metaData, file = file.path(file, "metaData.rds"))
 }
+
+saveCovariateData <- function(covariateData, file) {
+  if(!dir.exists(file)){
+    dir.create(file, recursive = T)
+  }
+  saveRDS(covariateData$covariateRef, file=file.path(file, 'covariateRef.rds'))
+  saveRDS(covariateData$analysisRef, file=file.path(file, 'analysisRef.rds'))
+  arrow::write_dataset(covariateData$covariates, path=file.path(file, 'arrowDataset'),
+                       format='feather')
+  attributes <- attributes(covariateData)
+  saveRDS(attributes, file=file.path(file, 'attributes.rds'))
+  
+}
+
+loadCovariateData <- function(file) { 
+  newCovariateData <- list(analysisRef= readRDS(file.path(file, 'analysisRef.rds')),
+                           covariateRef= readRDS(file.path(file, 'covariateRef.rds')))
+  covariates <- arrow::open_dataset(file.path(file, 'arrowDataset'),
+                                    format='feather')
+  
+  newCovariateData$covariates <- covariates
+  attributes(newCovariateData) <- readRDS(file.path(file, 'attributes.rds'))
+  return(newCovariateData)
+  }
+
+
 
 #' Load the cohort data from a folder
 #'
@@ -81,17 +111,23 @@ savePlpData <- function(plpData, file, envir=NULL, overwrite=F) {
 #' # todo
 #'
 #' @export
-loadPlpData <- function(file, readOnly = TRUE) {
+loadPlpData <- function(file, readOnly = TRUE, andromeda=TRUE) {
   if (!file.exists(file))
     stop(paste("Cannot find folder", file))
   if (!file.info(file)$isdir)
     stop(paste("Not a folder", file))
   
-  result <- list(covariateData = FeatureExtraction::loadCovariateData(file = file.path(file, "covariates")),
-                 timeRef = readRDS(file.path(file, "timeRef.rds")),
+  
+  result <- list(timeRef = readRDS(file.path(file, "timeRef.rds")),
                  cohorts = readRDS(file.path(file, "cohorts.rds")),
                  outcomes = readRDS(file.path(file, "outcomes.rds")),
                  metaData = readRDS(file.path(file, "metaData.rds")))
+  if (andromeda) {
+    result$covariateData = FeatureExtraction::loadCovariateData(file = file.path(file, "covariates"))
+  } else {
+    result$covariateData = loadCovariateData(file = file.path(file, 'covariates'))
+  }
+  
 
   class(result) <- "plpData"
 

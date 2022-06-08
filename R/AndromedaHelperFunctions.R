@@ -117,7 +117,27 @@ createArrow.data.frame <- function(object, name=NULL) {
   return(dataset)
 }
 
+#' convertCovariateDataToArrow
+#' @description Converts a covariateData object from using a rsqlite backend
+#' to arrow backend
+#' @param covariateData  A covariateData object from featureExtraction
+#' @export
+convertCovariateDataToArrow <- function(covariateData) {
+  newCovariateData <- list(covariateRef=covariateData$covariateRef %>% dplyr::collect(),
+                           analysisRef=covariateData$analysisRef %>% dplyr::collect())
+  
+  newCovariateData$covariates <- convertAndromedaToArrow(plpData$covariateData$covariates)
+  
+  metaData <- attr(plpData$covariateData, 'metaData') 
+  
+  attr(newCovariateData, 'metaData') <- metaData
+  class(newCovariateData) <- 'CovariateData'
+  
+  return(newCovariateData)
+}
 
+
+#' convertAndromedaToArrow
 #' @description
 #' converts an andromeda table to arrow dataset and writes it to the specified path
 #' @param andromeda andromeda table such as plpData$covariateData$covariates
