@@ -4,7 +4,7 @@
 \alias{loadPlpData}
 \title{Load the cohort data from a folder}
 \usage{
-loadPlpData(file, readOnly = TRUE)
+loadPlpData(file, readOnly = TRUE, andromeda = TRUE)
 }
 \arguments{
 \item{file}{The name of the folder containing the data.}

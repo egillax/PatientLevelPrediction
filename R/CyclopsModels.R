@@ -41,7 +41,7 @@ fitCyclopsModel <- function(
   start <- Sys.time() 
   outcomes <- trainData$covariateData$labels
   class(outcomes) <- 'Dataset'
-  cyclopsData <- Cyclops::convertToCyclopsData(
+  cyclopsData <- convertArrowToCyclopsData(
     outcomes = outcomes,
     covariates = covariates,
     addIntercept = settings$addIntercept,
